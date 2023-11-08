@@ -1,0 +1,2 @@
+# Spacy Model For Sinhala NER and cluster the Sinhala Documents
+This script can be used for train a spacy model for sinhala Named Entity Recognition. And based on entity identifications the main.py script can cluster the sinhala documents.
