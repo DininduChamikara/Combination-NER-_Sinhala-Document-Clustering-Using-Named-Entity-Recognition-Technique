@@ -28,16 +28,20 @@ if __name__ == "__main__":
 
     final_entities = set()
 
+    intersecResults = set()
+
     # print intersec
-    print("intersec: ")
+    # print("intersec: ")
     for entity in prediction[0]:
         for key, value in entity.items():
             for ent in doc_spacy.ents:
                 if key == ent.text and value == ent.label_:
-                    print(f"Text: {key}, Label: {value}")
+                    # print(f"Text: {key}, Label: {value}")
+                    intersecItem = (key, value)
+                    intersecResults.add(intersecItem)
 
     # print union
-    print("Union: ")
+    # print("Union: ")
     for entity in prediction[0]:
         for key, value in entity.items():
             if value not in final_entities:
@@ -46,7 +50,7 @@ if __name__ == "__main__":
 
                     if unique_entity not in final_entities:
                         final_entities.add(unique_entity)
-                        print(f"Text: {key}, Label: {value}")
+                        # print(f"Text: {key}, Label: {value}")
                 else:
                     for ent in doc_spacy.ents:
                         if key == ent.text and ent.text != "":
@@ -56,6 +60,11 @@ if __name__ == "__main__":
                             )  # Use a tuple for uniqueness check
                             if unique_entity not in final_entities:
                                 final_entities.add(unique_entity)
-                                print(f"Text: {ent.text}, Label: {ent.label_}")
+                                # print(f"Text: {ent.text}, Label: {ent.label_}")
 
-    print ("successfully prints both union and intersec of Spacy with BERT")
+    # print ("successfully prints both union and intersec of Spacy with BERT")
+    print("intersec: ")
+    print(intersecResults)
+
+    print("union: ")
+    print(final_entities)
