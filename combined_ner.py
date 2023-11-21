@@ -22,7 +22,12 @@ colors = {
 }
 options = {"colors": colors}
 
-print(doc1.ents)
+# print(doc1.ents)
+
+# Print Spacy Entities
+print("Spacy Entities:")
+for ent in doc1.ents:
+    print(f"Text: {ent.text}, Label: {ent.label_}")
 
 # try:
 #     displacy.serve(
@@ -57,7 +62,16 @@ if __name__ == "__main__":
 
     prediction, model_output = model.predict([testString])
 
-    print("Prediction : ", prediction)
+    # print("BERT Prediction : ", prediction[0])
+
+    # Print BERT Entities
+    print("BERT Entities:")
+    # for entity, label in prediction[0]:
+    #     print(f"Text: {entity}, Label: {label}")
+    for entity in prediction[0]:
+        for key, value in entity.items():
+            print(f"Text: {key}, Label: {value}")
+
 
 
 ####################
@@ -145,3 +159,4 @@ for token in tokens:
     )
     if not similarity_score == None:
         print("'" + token + "' : " + "[" + similarity_score[2] + "]")
+
