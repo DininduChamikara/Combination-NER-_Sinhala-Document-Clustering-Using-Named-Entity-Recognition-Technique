@@ -15,9 +15,6 @@ from nervaluate import Evaluator
 with open("./SpacyNER/annotations_v1.0.json", "r", encoding="utf-8") as f:
     data = json.load(f)
 
-# print(len(data['annotations']))
-
-
 with open("./FuzzyMatcher/dict_sinhala.json", "r", encoding="utf-8") as f:
     dictionary = json.load(f)
 
@@ -32,7 +29,7 @@ confidenceLevels = pd.DataFrame(
 )
 
 
-testingDataPortionDivider = 1 # 20% => 100/5 => 5
+testingDataPortionDivider = 100 # 20% => 100/5 => 5
 
 
 def trueOutputsArrGenerator(annotations):
@@ -44,12 +41,23 @@ def trueOutputsArrGenerator(annotations):
 
     return trueOutputs
 
-def predOutputsArrGenerator(annotations, modelResults):
+# def predOutputsArrGenerator(annotations, modelResults):
+
+#     predOutputs = []
+#     testData = annotations[0: int(len(annotations)/testingDataPortionDivider)]
+
+#     for annot in testData:
+#         predOutputs.append(predOutputGenerator(annot[0], modelResults))
+
+#     return predOutputs
+
+def predOutputsArrGenerator(annotations, spacyNER, bertNER):
     predOutputs = []
     testData = annotations[0: int(len(annotations)/testingDataPortionDivider)]
 
     for annot in testData:
-        predOutputs.append(predOutputGenerator(annot[0], modelResults))
+        nerResult = namedEntityRecognition(annot[0], spacyNER, bertNER)
+        predOutputs.append(predOutputGenerator(annot[0], nerResult))
 
     return predOutputs
 
@@ -123,21 +131,6 @@ def predOutputGenerator(str, modelResults):
     return predOut
 
 
-# annotationOBJ = (
-#     [
-#         "ආසියානු ක්‍රිකට් ශුර ශ්‍රී ලංකා කණ්ඩායම සහ සත්කාරක ඉන්දීය කණ්ඩායම අතර 20/20 ක්‍රිකට් තරගාවලියේ 3 වැනි සහ අවසන් 20/20 ක්‍රිකට් තරගය ලකුණු 91කින් ජයගනිමින් ඉන්දියාව තරගාවලියේ ජය හිමි කර ගනු ලැබීය.\r",
-#         {
-#             "entities": [
-#                 [0, 7, "LOCATION"],
-#                 [21, 31, "LOCATION"],
-#                 [51, 57, "LOCATION"],
-#                 [154, 162, "LOCATION"],
-#             ]
-#         },
-#     ],
-# )
-
-
 def trueOutputGenerator(annotationObject):
     trueOut = []
     for ent in annotationObject[1]["entities"]:
@@ -152,11 +145,92 @@ label = ["LOCATION", "OTHER", "PERSON", "DATE", "ORGANIZATION", "TIME"]
 testString = "2023-2025 ලෝක ටෙස්ට් ශූරතා තරගාවලිය එළඹෙන ජූනි මාසයේ දී ආරම්භ වීමට නියමිත යි. ඒ සඳහා සහභාගි වන එක් එක් කණ්ඩායමට හිමි වන ටෙස්ට් තරග ප්‍රමාණය මේ වන විට ප්‍රකාශයට පත් කර අවසන්. ඒ අනුව මෙවර තරගාවලිය යටතේ ද ශ්‍රී ලංකාවට ටෙස්ට් තරග 12කට ක්‍රීඩා කිරීමේ අවස්ථාව ලැබෙනවා. එයින් ටෙස්ට් තරග 6ක් ශ්‍රී ලංකාවේ ද ඉතිරි ටෙස්ට් තරග 6 විදෙස් රටවල්වල දී ද පැවැත්වීමට නියමිත යි.අවසන් වරට පැවති 2021-2023 ලෝක ටෙස්ට් ශූරතා තරගාවලියේ දී ශ්‍රී ලංකාව සැලකිය යුතු තරම් දස්කම් පෙන්වීමට සමත් වුණා. එනිසා මෙවර ලෝක ටෙස්ට් ශූරතාවේ අවසන් තරගය සඳහා පිවිසීමට ශ්‍රී ලංකාවට තිබෙන අවස්ථාව පිළිබඳව යම් විශ්ලේෂණයක් මෙලෙසින් ඔබ වෙත ගෙන එනවා."
 
 args = NERArgs()
-args.num_train_epochs = 1
+args.num_train_epochs = 10
 args.learning_rate = 1e-4
 args.overwrite_output_dir = True
 args.train_batch_size = 32
 args.eval_batch_size = 32
+
+def removeStopWords(sentence):
+    result = sentence.split()
+    final = []
+    for i in result:
+        if i not in stopwords:
+            final.append(i)
+            final.append(" ")
+    stop_removed = "".join(final)
+    return stop_removed
+
+def namedEntityRecognition (sentence, spacyNER, bertNER):
+
+    stopRemovedSentence = removeStopWords(sentence)
+
+    doc_spacy_ner = spacyNER(stopRemovedSentence)
+    prediction, model_output = bertNER.predict([stopRemovedSentence]) 
+
+    tokens = stopRemovedSentence.split()
+
+    fuzzyResults = fuzzyResultGenerator(tokens)
+
+    final_entities = set()
+
+    # unioin start #
+    # BERT
+    for entity in prediction[0]:
+        for key, value in entity.items():
+            if value not in final_entities:
+                if value != "OTHER":
+                    unique_entity_BERT = (key, value)
+                    if unique_entity_BERT not in final_entities:
+                        final_entities.add(unique_entity_BERT)
+    # SPACY
+    for spacyEnt in doc_spacy_ner.ents:
+        if spacyEnt.text != "":
+            unique_entity_SPACY = (
+                spacyEnt.text,
+                spacyEnt.label_
+            )
+            if unique_entity_SPACY not in final_entities:
+                final_entities.add(unique_entity_SPACY)
+    # FUZZY
+    for fuzzEnt in fuzzyResults:
+        unique_entity_FUZZY = (
+            fuzzEnt[0],
+            fuzzEnt[1],
+        )
+        if unique_entity_FUZZY not in final_entities:
+            final_entities.add(unique_entity_FUZZY)
+    # unioin end #
+
+
+    # print("PREDICTIONS")
+    # print(prediction)
+
+    # print("DOC SPACY NER ENTS")
+    # print(doc_spacy_ner.ents)
+
+    # print("FUZZY RESULTS")
+    # print(fuzzyResultGenerator(tokens))
+
+    # print(final_entities)
+
+    return final_entities
+
+
+
+def fuzzyResultGenerator(tokens):
+    fuzzyResults = set()
+
+    for token in tokens:
+        fuzzy_ratio = getFuzzyRatio(token=token, confidence_levels=True)
+        similarity_score = getFuzzySimilarity(
+            token=token, dictionary=dictionary, min_ratio=fuzzy_ratio
+        )
+        if not similarity_score == None:
+            fuzzyEntity = (token, similarity_score[2])
+            fuzzyResults.add(fuzzyEntity)
+    return fuzzyResults
+
 
 if __name__ == "__main__":
     freeze_support()
@@ -170,6 +244,11 @@ if __name__ == "__main__":
     )
 
     prediction, model_output = model.predict([testString])
+
+    # print("PREDICTIONS")
+    # print(prediction)
+
+    # namedEntityRecognition(testString, nlp_ner, model)
 
     # stop words remove
     result = testString.split()
@@ -213,34 +292,67 @@ if __name__ == "__main__":
                         intersecItem = (key, value)
                         intersecResults.add(intersecItem)
 
+    # set predictions for BERT
+    
+
+    # new union #################################################
     for entity in prediction[0]:
         for key, value in entity.items():
             if value not in final_entities:
                 if value != "OTHER":
-                    unique_entity = (key, value)  # Use a tuple for uniqueness check
+                    unique_entity_BERT = (key, value)
+                    if unique_entity_BERT not in final_entities:
+                        final_entities.add(unique_entity_BERT)
 
-                    if unique_entity not in final_entities:
-                        final_entities.add(unique_entity)
+    for spacyEnt in doc_spacy.ents:
+        if spacyEnt.text != "":
+            unique_entity_SPACY = (
+                spacyEnt.text,
+                spacyEnt.label_
+            )
+            if unique_entity_SPACY not in final_entities:
+                final_entities.add(unique_entity_SPACY)
 
-                else:
-                    for ent in doc_spacy.ents:
-                        if key == ent.text and ent.text != "":
-                            unique_entity = (
-                                ent.text,
-                                ent.label_,
-                            )  # Use a tuple for uniqueness check
-                            if unique_entity not in final_entities:
-                                final_entities.add(unique_entity)
+    for fuzzEnt in fuzzyResults:
+        unique_entity_FUZZY = (
+            fuzzEnt[0],
+            fuzzEnt[1],
+        )
+        if unique_entity_FUZZY not in final_entities:
+            final_entities.add(unique_entity_FUZZY)
+    #############################################################
 
-                        else:
-                            for fuzzEnt in fuzzyResults:
-                                if key == fuzzEnt[0]:
-                                    unique_entity = (
-                                        fuzzEnt[0],
-                                        fuzzEnt[1],
-                                    )
-                                    if unique_entity not in final_entities:
-                                        final_entities.add(unique_entity)
+
+    # for entity in prediction[0]:
+    #     for key, value in entity.items():
+    #         if value not in final_entities:
+    #             if value != "OTHER":
+    #                 unique_entity = (key, value)  # Use a tuple for uniqueness check
+
+    #                 if unique_entity not in final_entities:
+    #                     final_entities.add(unique_entity)
+
+    #             else:
+    #                 for ent in doc_spacy.ents:
+    #                     if key == ent.text and ent.text != "":
+    #                         unique_entity = (
+    #                             ent.text,
+    #                             ent.label_,
+    #                         )  # Use a tuple for uniqueness check
+    #                         if unique_entity not in final_entities:
+    #                             final_entities.add(unique_entity)
+
+    #                     else:
+    #                         for fuzzEnt in fuzzyResults:
+    #                             if key == fuzzEnt[0]:
+    #                                 unique_entity = (
+    #                                     fuzzEnt[0],
+    #                                     fuzzEnt[1],
+    #                                 )
+    #                                 if unique_entity not in final_entities:
+    #                                     final_entities.add(unique_entity)
+
+
 
     # print("intersec: ")
     # print(intersecResults)
@@ -259,7 +371,13 @@ if __name__ == "__main__":
     # print(predOutputsArrGenerator(data['annotations'], final_entities))
 
     trueOutputsArr = trueOutputsArrGenerator(data['annotations'])
-    predOutputsArr = predOutputsArrGenerator(data['annotations'], final_entities)
+    # predOutputsArr = predOutputsArrGenerator(data['annotations'], final_entities)
+    predOutputsArr = predOutputsArrGenerator(data['annotations'], nlp_ner, model)
+
+    # print("TRUE")
+    # print(trueOutputsArr)
+    # print("PRED")
+    # print(predOutputsArr)
 
     evaluator = Evaluator(trueOutputsArr, predOutputsArr, tags=['LOCATION', 'PERSON', 'ORGANIZATION', 'DATE', 'TIME'])
 
