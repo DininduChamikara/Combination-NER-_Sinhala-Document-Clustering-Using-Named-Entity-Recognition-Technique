@@ -8,6 +8,16 @@ from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 import json
 
+# evaluate model
+from nervaluate import Evaluator
+
+
+with open("./SpacyNER/annotations_v1.0.json", "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+# print(len(data['annotations']))
+
+
 with open("./FuzzyMatcher/dict_sinhala.json", "r", encoding="utf-8") as f:
     dictionary = json.load(f)
 
@@ -20,6 +30,30 @@ confidenceLevels = pd.DataFrame(
         "minRatio": [100, 100, 100, 100, 80, 80, 80, 80, 75, 75],
     }
 )
+
+
+testingDataPortionDivider = 1 # 20% => 100/5 => 5
+
+
+def trueOutputsArrGenerator(annotations):
+    trueOutputs = []
+    testData = annotations[0: int(len(annotations)/testingDataPortionDivider)]
+    
+    for annot in testData:
+        trueOutputs.append(trueOutputGenerator(annot))
+
+    return trueOutputs
+
+def predOutputsArrGenerator(annotations, modelResults):
+    predOutputs = []
+    testData = annotations[0: int(len(annotations)/testingDataPortionDivider)]
+
+    for annot in testData:
+        predOutputs.append(predOutputGenerator(annot[0], modelResults))
+
+    return predOutputs
+
+
 
 def getFuzzyRatio(token=None, confidence_levels=True, default_level=85):
     # check for the appropriate formats
@@ -58,6 +92,60 @@ def getFuzzySimilarity(token=None, dictionary=None, min_ratio=None):
         # Match is a tuple with the match value and the similary score.
         if min_ratio <= match[1]:
             return match + (key,)
+
+
+def get_word_indices(sentence):
+    # Split the sentence into words using whitespace and punctuation as delimiters
+    words = sentence.split()
+
+    # Initialize a list to store word indices
+    word_indices = []
+
+    start = 0
+    for word in words:
+        end = start + len(word)
+        word_indices.append([word, start, end])
+        start = end + 1  # Add 1 for the space between words
+
+    return word_indices
+
+
+def predOutputGenerator(str, modelResults):
+    predOut = []
+    wordIndices = get_word_indices(str)
+
+    for indice in wordIndices:
+        for word in modelResults:
+            if word[0] == indice[0]:
+                predOutEnt = {"label": word[1], "start": indice[1], "end": indice[2]}
+                predOut.append(predOutEnt)
+
+    return predOut
+
+
+# annotationOBJ = (
+#     [
+#         "ආසියානු ක්‍රිකට් ශුර ශ්‍රී ලංකා කණ්ඩායම සහ සත්කාරක ඉන්දීය කණ්ඩායම අතර 20/20 ක්‍රිකට් තරගාවලියේ 3 වැනි සහ අවසන් 20/20 ක්‍රිකට් තරගය ලකුණු 91කින් ජයගනිමින් ඉන්දියාව තරගාවලියේ ජය හිමි කර ගනු ලැබීය.\r",
+#         {
+#             "entities": [
+#                 [0, 7, "LOCATION"],
+#                 [21, 31, "LOCATION"],
+#                 [51, 57, "LOCATION"],
+#                 [154, 162, "LOCATION"],
+#             ]
+#         },
+#     ],
+# )
+
+
+def trueOutputGenerator(annotationObject):
+    trueOut = []
+    for ent in annotationObject[1]["entities"]:
+        trueOutEnt = {"label": ent[2], "start": ent[0], "end": ent[1]}
+        trueOut.append(trueOutEnt)
+
+    return trueOut
+
 
 label = ["LOCATION", "OTHER", "PERSON", "DATE", "ORGANIZATION", "TIME"]
 
@@ -99,7 +187,6 @@ if __name__ == "__main__":
 
     fuzzyResults = set()
 
-    # print("Fuzzy")
     for token in tokens:
         fuzzy_ratio = getFuzzyRatio(token=token, confidence_levels=True)
         similarity_score = getFuzzySimilarity(
@@ -108,28 +195,24 @@ if __name__ == "__main__":
         if not similarity_score == None:
             fuzzyEntity = (token, similarity_score[2])
             fuzzyResults.add(fuzzyEntity)
-            
-    
-    # print(fuzzyResults)
 
     final_entities = set()
-
-    # final output
     intersecResults = set()
 
-    # print intersec
-    # print("intersec: ")
     for entity in prediction[0]:
         for key, value in entity.items():
             for ent in doc_spacy.ents:
                 for fuzzEnt in fuzzyResults:
-                    if key == ent.text and value == ent.label_ and key == fuzzEnt[0] and value == fuzzEnt[1]:
+                    if (
+                        key == ent.text
+                        and value == ent.label_
+                        and key == fuzzEnt[0]
+                        and value == fuzzEnt[1]
+                    ):
                         # print(f"Text: {key}, Label: {value}")
                         intersecItem = (key, value)
                         intersecResults.add(intersecItem)
 
-    # print union
-    # print("Union: ")
     for entity in prediction[0]:
         for key, value in entity.items():
             if value not in final_entities:
@@ -138,7 +221,7 @@ if __name__ == "__main__":
 
                     if unique_entity not in final_entities:
                         final_entities.add(unique_entity)
-                        # print(f"Text: {key}, Label: {value}")
+
                 else:
                     for ent in doc_spacy.ents:
                         if key == ent.text and ent.text != "":
@@ -148,7 +231,7 @@ if __name__ == "__main__":
                             )  # Use a tuple for uniqueness check
                             if unique_entity not in final_entities:
                                 final_entities.add(unique_entity)
-                                # print(f"Text: {ent.text}, Label: {ent.label_}")
+
                         else:
                             for fuzzEnt in fuzzyResults:
                                 if key == fuzzEnt[0]:
@@ -158,12 +241,30 @@ if __name__ == "__main__":
                                     )
                                     if unique_entity not in final_entities:
                                         final_entities.add(unique_entity)
-                                        # print(f"Text: {fuzzEnt[0]}, Label: {fuzzEnt[1]}")
 
+    # print("intersec: ")
+    # print(intersecResults)
 
-    # print ("successfully prints both union and intersec of Spacy with BERT")
-    print("intersec: ")
-    print(intersecResults)
+    # print("union: ")
+    # print(final_entities)
 
-    print("union: ")
-    print(final_entities)
+    # predOutput = predOutputGenerator(testString, final_entities)
+    # print("pred output")
+    # print(predOutput)
+
+    # print("true output array")
+    # print(trueOutputsArrGenerator(data['annotations']))
+
+    # print("pred output array")
+    # print(predOutputsArrGenerator(data['annotations'], final_entities))
+
+    trueOutputsArr = trueOutputsArrGenerator(data['annotations'])
+    predOutputsArr = predOutputsArrGenerator(data['annotations'], final_entities)
+
+    evaluator = Evaluator(trueOutputsArr, predOutputsArr, tags=['LOCATION', 'PERSON', 'ORGANIZATION', 'DATE', 'TIME'])
+
+    # Returns overall metrics and metrics for each tag
+    results, results_per_tag = evaluator.evaluate()
+
+    print(results)
+    # print(results_per_tag)

@@ -62,7 +62,6 @@ if __name__ == "__main__":
                                 final_entities.add(unique_entity)
                                 # print(f"Text: {ent.text}, Label: {ent.label_}")
 
-    # print ("successfully prints both union and intersec of Spacy with BERT")
     print("intersec: ")
     print(intersecResults)
 
