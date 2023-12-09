@@ -129,75 +129,70 @@ if __name__ == "__main__":
     freeze_support()
 
     ########## Temporary commented #########
-    nlp_ner = spacy.load("./SpacyNER/model-best")
-    model = NERModel(
-        "bert", "./BERT_NER/trained_model", labels=label, args=args, use_cuda=False
-    )
+    # nlp_ner = spacy.load("./SpacyNER/model-best")
+    # model = NERModel(
+    #     "bert", "./BERT_NER/trained_model", labels=label, args=args, use_cuda=False
+    # )
     documents = []
     for annotation in data["annotations"]:
         documents.append(annotation[0])
-    named_entities = [namedEntityRecognition(doc, nlp_ner, model) for doc in documents]
+    # named_entities = [namedEntityRecognition(doc, nlp_ner, model) for doc in documents]
 
-    print("NAMED ENTITIES FROM MODEL")
-    print(named_entities)
     ########## Temporary commented #########
 
-    # named_entities = [
-    #     {
-    #         ("ශ්\u200dරී ලංකා", "LOCATION"),
-    #         ("ඉන්දීය", "LOCATION"),
-    #         ("ලංකා", "LOCATION"),
-    #         ("20/20", "DATE"),
-    #         ("ආසියානු", "LOCATION"),
-    #         ("ඉන්දියාව", "LOCATION"),
-    #     },
-    #     {("රාජ්කොට් සෞරාෂ්ට්\u200dර ක්\u200dරිකට්", "LOCATION")},
-    #     {("ඉන්දීය", "LOCATION"), ("හර්දික් පාණ්ඩ්\u200dයා", "PERSON")},
-    #     {
-    #         ("ඉන්දීය", "LOCATION"),
-    #         ("ශ්\u200dරී ලංකාවට", "LOCATION"),
-    #         ("ලංකාවට", "LOCATION"),
-    #     },
-    #     {
-    #         ("ඉන්දීය", "LOCATION"),
-    #         ("සූර්යකුමාර් යාදව්", "PERSON"),
-    #         ("සූර්යකුමාර්", "PERSON"),
-    #     },
-    #     {
-    #         ("21.19.60", "DATE"),
-    #         ("සූර්යකුමාර්", "PERSON"),
-    #         ("සූර්යකුමාර් යාද්ව්ගේ", "PERSON"),
-    #         ("වාර්තා", "DATE"),
-    #     },
-    #     {("ශුබ්මන් ගිල්", "PERSON")},
-    #     {
-    #         ("ශ්\u200dරී ලංකා", "LOCATION"),
-    #         ("ඉන්දීය", "LOCATION"),
-    #         ("ලංකා", "LOCATION"),
-    #         ("ක්\u200dරීඩා", "LOCATION"),
-    #         ("පිළිතුරු", "LOCATION"),
-    #         ("මෙන්ඩිස්", "ORGANIZATION"),
-    #     },
-    #     {("ශ්\u200dරී ලංකා", "LOCATION"), ("ඉන්දීය", "LOCATION"), ("ලංකා", "LOCATION")},
-    #     {("කුසල් මෙන්ඩිස්", "PERSON"), ("දසුන් ශානක", "PERSON"), ("දසුන්", "PERSON")},
-    #     {("දසුන්ගේ", "PERSON")},
-    #     {("ඉන්දියාවට", "LOCATION")},
-    #     {
-    #         ("ශ්\u200dරී ලංකා", "LOCATION"),
-    #         ("ලංකා", "LOCATION"),
-    #         ("ක්\u200dරීඩකයින්", "LOCATION"),
-    #         ("පුවරුව", "TIME"),
-    #     },
-    #     {
-    #         ("සූර්යකුමාර් යාදව්", "PERSON"),
-    #         ("සූර්යකුමාර්", "PERSON"),
-    #         ("අක්සාර් පටෙල්", "PERSON"),
-    #     },
-    #     {("ඉන්දියාවට", "LOCATION"), ("දසුන්ගෙ", "PERSON"), ("දසුන්ගෙන්", "PERSON")},
-    # ]
-
-    # print("NAMED ENTITIES FROM MANUAL")
-    # print(named_entities)
+    named_entities = [
+        {
+            ("ශ්\u200dරී ලංකා", "LOCATION"),
+            ("ඉන්දීය", "LOCATION"),
+            ("ලංකා", "LOCATION"),
+            ("20/20", "DATE"),
+            ("ආසියානු", "LOCATION"),
+            ("ඉන්දියාව", "LOCATION"),
+        },
+        {("රාජ්කොට් සෞරාෂ්ට්\u200dර ක්\u200dරිකට්", "LOCATION")},
+        {("ඉන්දීය", "LOCATION"), ("හර්දික් පාණ්ඩ්\u200dයා", "PERSON")},
+        {
+            ("ඉන්දීය", "LOCATION"),
+            ("ශ්\u200dරී ලංකාවට", "LOCATION"),
+            ("ලංකාවට", "LOCATION"),
+        },
+        {
+            ("ඉන්දීය", "LOCATION"),
+            ("සූර්යකුමාර් යාදව්", "PERSON"),
+            ("සූර්යකුමාර්", "PERSON"),
+        },
+        {
+            ("21.19.60", "DATE"),
+            ("සූර්යකුමාර්", "PERSON"),
+            ("සූර්යකුමාර් යාද්ව්ගේ", "PERSON"),
+            ("වාර්තා", "DATE"),
+        },
+        {("ශුබ්මන් ගිල්", "PERSON")},
+        {
+            ("ශ්\u200dරී ලංකා", "LOCATION"),
+            ("ඉන්දීය", "LOCATION"),
+            ("ලංකා", "LOCATION"),
+            ("ක්\u200dරීඩා", "LOCATION"),
+            ("පිළිතුරු", "LOCATION"),
+            ("මෙන්ඩිස්", "ORGANIZATION"),
+        },
+        {("ශ්\u200dරී ලංකා", "LOCATION"), ("ඉන්දීය", "LOCATION"), ("ලංකා", "LOCATION")},
+        {("කුසල් මෙන්ඩිස්", "PERSON"), ("දසුන් ශානක", "PERSON"), ("දසුන්", "PERSON")},
+        {("දසුන්ගේ", "PERSON")},
+        {("ඉන්දියාවට", "LOCATION")},
+        {
+            ("ශ්\u200dරී ලංකා", "LOCATION"),
+            ("ලංකා", "LOCATION"),
+            ("ක්\u200dරීඩකයින්", "LOCATION"),
+            ("පුවරුව", "TIME"),
+        },
+        {
+            ("සූර්යකුමාර් යාදව්", "PERSON"),
+            ("සූර්යකුමාර්", "PERSON"),
+            ("අක්සාර් පටෙල්", "PERSON"),
+        },
+        {("ඉන්දියාවට", "LOCATION"), ("දසුන්ගෙ", "PERSON"), ("දසුන්ගෙන්", "PERSON")},
+    ]
 
     # Create an empty DataFrame with the desired columns
     columns = ["OBJECT", "PERSON", "LOCATION", "ORGANIZATION", "DATE", "TIME"]
@@ -205,8 +200,8 @@ if __name__ == "__main__":
 
     # Iterate through the list of dictionaries and populate the DataFrame
     for i, obj_set in enumerate(named_entities):
-        row = {"OBJECT": i + 1}
-        # row = {"OBJECT": documents[i]}
+        # row = {"OBJECT": i + 1}
+        row = {"OBJECT": documents[i]}
         if i >= len(df):
             df = df._append(row, ignore_index=True)
 
@@ -259,6 +254,14 @@ if __name__ == "__main__":
     # Apply k-means clustering
     kmeans = KMeans(n_clusters=optimal_k, init='k-means++', random_state=42)
     df['Cluster'] = kmeans.fit_predict(scaled_data)
+
+    # Print clustered documents with their cluster labels
+    for cluster_label in range(optimal_k):
+        cluster_docs = df[df['Cluster'] == cluster_label]['OBJECT'].tolist()
+        print(f"Cluster {cluster_label + 1} Documents:")
+        for doc in cluster_docs:
+            print(f"  - {doc}")
+        print("\n")
 
     sns.pairplot(df, hue='Cluster', palette='viridis', diag_kind='kde')
     plt.show()
